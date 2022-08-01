@@ -1,16 +1,35 @@
+import numpy as np
+
+#define a function
+def func1():
+   print("I am learning Python functions")
+   print("still in func1")
+   
+   
+func1()
+
+def square(x):
+  	return x*x
+print(square(4))
+
+def multiplyx(x, y=0):
+	print("value of x=", x)
+	try:
+		
+	except Exception as e:
+		raise e
+	finally:
+		pass
+	print("value of y=", y)
+	return x*y
+    
+     
+print(multiplyx(y=2, x=4))
+print(func1())
 
 
-name = 'Maryam'
-language = 'Python'
-Online = False
+if __name__ == "__main__":
+	main()
 
-
-x = 337
-w = 337
-# is  ==
-# and or 
-
-if name.lower() == 'maryam':
-    print("Salam")
-else:
-    print("Hichi")
+if __name__ == "__main__":
+	main()
