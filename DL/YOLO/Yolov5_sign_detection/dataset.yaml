@@ -1,0 +1,9 @@
+# train and val data
+train: ../images/train/
+val: ../images/val/
+
+# number of classes
+nc: 4
+
+# class names
+names: ['speed limit', 'danger', 'mandatory', 'other']
