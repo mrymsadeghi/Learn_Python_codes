@@ -12,7 +12,7 @@ def QR_decode(im) :
     # Print results
     for obj in decodedObjects:
         print('Type : ', obj.type)
-        print('Data : ', obj.data,'\n')     
+        print('Data : ', obj.data,'/n')     
     return decodedObjects
 
 # Display barcode and QR code location  
@@ -61,7 +61,7 @@ while(True):
         print(x, y)
 
         print('Type : ', decodedObject.type)
-        print('Data : ', decodedObject.data,'\n')
+        print('Data : ', decodedObject.data,'/n')
 
         barCode = str(decodedObject.data)
         cv.putText(frame, barCode, (x, y), cv.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2, cv.LINE_AA) 

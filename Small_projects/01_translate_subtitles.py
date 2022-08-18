@@ -20,8 +20,8 @@ with open(os.path.join(filepath, filename2), 'w', encoding="utf-8") as f:
         if line_en[0] in nums:
             f.write(line_en)
 
-        elif line_en=='\n':
-            f.write('\n')
+        elif line_en=='/n':
+            f.write('/n')
         else:
             if line_en:
                 line_fa = translator.translate(line_en, src='en', dest='fa')
