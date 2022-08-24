@@ -2,11 +2,9 @@
 import os
 from pathlib import Path
 from typing import Union
-from paddleocr import PaddleOCR
 import torch
 import cv2 as cv
 import numpy as np
-import pytesseract
 from deep_sort_realtime.deepsort_tracker import DeepSort
 from models.experimental import attempt_load
 from utils.general import check_img_size
@@ -15,10 +13,15 @@ from utils.datasets import letterbox
 from utils.general import non_max_suppression, scale_coords
 from utils.plots import plot_one_box, plot_one_box_PIL
 from copy import deepcopy
+import easyocr
 
-pytesseract.pytesseract.tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"
-savepath = "E:/PyProjects/Learn_Python_codes/DL/YOLO/YOLOv7/ANPRir/sidebar"
-weights = 'E:/PyProjects/Learn_Python_codes/DL/YOLO/YOLOv7/ANPR/yolov7/weights/best.pt'
+
+images_n_vids_path = "C:/PyProjects/ANPRir/ANPRir/images_vids"
+image_path = os.path.join(images_n_vids_path, "pelakir_2.jpg")
+video_path = os.path.join(images_n_vids_path, "test_video_short.mp4")
+
+savepath = "C:/PyProjects/ANPRir/ANPRir/sidebar"
+weights = 'weights/best.pt'
 device_id = 'cpu'
 image_size = 640
 trace = True
@@ -42,11 +45,8 @@ if device.type != 'cpu':
     model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
 
 
-#pip install paddlepaddle paddleocr
 # Load OCR
-paddle = PaddleOCR(lang="fa")
-
-
+reader = easyocr.Reader(['fa'])
 
 
 def detect_plate(source_image):
@@ -109,31 +109,20 @@ def ocr_plate(plate_region):
     cv.imwrite(os.path.join(savepath, "plate_img.png"), plate_region)
     rescaled = cv.resize(plate_region, None, fx=1.2, fy=1.2, interpolation=cv.INTER_CUBIC)
     grayscale = cv.cvtColor(rescaled, cv.COLOR_BGR2GRAY)
-    kernel = np.ones((1, 1), np.uint8)
-    dilated = cv.dilate(grayscale, kernel, iterations=1)
-    eroded = cv.erode(dilated, kernel, iterations=1)
-    sharpened = unsharp_mask(eroded)
-    cv.imwrite(os.path.join(savepath, "sharpened_plate_img.png"), sharpened)
     # OCR the preprocessed image
-    sharpened_blur = cv.medianBlur(sharpened, 3)
-    ret, thresh1 = cv.threshold(sharpened_blur, 120, 255, cv.THRESH_BINARY + cv.THRESH_OTSU) 
-    cv.imwrite(os.path.join(savepath, "sharpened_plate_img.png"), sharpened)
-    results = paddle.ocr(sharpened_blur, det=False, cls=False)
-    maxConfidenceResult = max(results, key=lambda result:result[1])
-    plate_text, ocr_confidence = maxConfidenceResult
-    print("plate_text ", plate_text)
-    print("plate_text pytesse 1", pytesseract.image_to_string(sharpened, lang='fas'))
-    
-    print("plate_text pytesse 2", pytesseract.image_to_string(sharpened_blur, lang='fas'))
-
-    #plate_text = pytesseract.image_to_string(sharpened_blur, lang='fas')
-    # Filter out anything but uppercase letters, digits, hypens and whitespace.
-    #plate_text = re.sub(r'[^-A-Z0-9 ]', r'', plate_text).strip()
-    
-    if ocr_confidence == 'nan':
+    grayscale_blur = cv.medianBlur(grayscale, 1)
+    ret, thresh1 = cv.threshold(grayscale_blur, 120, 255, cv.THRESH_BINARY + cv.THRESH_OTSU) 
+    cv.imwrite(os.path.join(savepath, "grayscale_blur.png"), grayscale_blur)
+    plate_text_easyocr = reader.readtext(grayscale_blur)
+    if plate_text_easyocr:
+        (bbox, text_easyocr, ocr_confidence) = plate_text_easyocr[0]
+        print("plate_text Easyocr ", text_easyocr)
+    else:
+        text_easyocr = "_"
         ocr_confidence = 0
+    #if ocr_confidence == 'nan':
     
-    return plate_text, ocr_confidence
+    return text_easyocr, ocr_confidence
 
 def get_plates_from_image(input):
     if input is None:
@@ -238,7 +227,7 @@ def get_plates_from_video(source):
                     # Plotting the prediction.
                     frame = plot_one_box_PIL(bbox, frame, label=f'{str(track.track_id)}. {plate_text}', color=[255, 150, 0], line_thickness=3)
                     cv.imshow("frame ", frame)
-                    keyexit = cv.waitKey(5) & 0xFF
+                    keyexit = cv.waitKey(0)
                     if keyexit == 27:
                         break
             # Write the frame into the output file
@@ -280,10 +269,15 @@ def get_plates_from_webcam():
     # Initializing some helper variables.
     preds = []
     total_obj = 0
-
+    fr_count = 0
     while(True):
         ret, frame = video.read()
         if ret == True:
+            
+            fr_count+=1
+            if fr_count % 10 !=0:
+                continue
+
             # Run the ANPR algorithm
             bboxes, scores = detect_plate(frame)
             # Convert Pascal VOC detections to COCO
@@ -327,7 +321,7 @@ def get_plates_from_webcam():
                     # Plotting the prediction.
                     frame = plot_one_box_PIL(bbox, frame, label=f'{str(track.track_id)}. {plate_text}', color=[255, 150, 0], line_thickness=3)
                     cv.imshow("frame ", frame)
-                    keyexit = cv.waitKey(5) & 0xFF
+                    keyexit = cv.waitKey(0) 
                     if keyexit == 27:
                         break
             # Write the frame into the output file
@@ -349,12 +343,13 @@ def get_plates_from_webcam():
 
 
 # pip install torch==1.5.0+cpu torchvision==0.6.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-# plate_image = cv.imread("E:/PyProjects/Learn_Python_codes/DL/YOLO/YOLOv7/ANPRir/images_vids/test_img_1.jpg")
+# plate_image = cv.imread(image_path)
 # detected_plate_image = get_plates_from_image(plate_image)
 # cv.imwrite(os.path.join(savepath, "detected_plate.png"), detected_plate_image)
+# cv.imshow("detected_plate_image",detected_plate_image)
+# cv.waitKey(0)
+# cv.destroyAllWindows
 
-
-# video_path = "E:/PyProjects/Learn_Python_codes/DL/YOLO/YOLOv7/ANPRir/images_vids/test_video_3.mp4"
 # detected_plate_image = get_plates_from_video(video_path)
 
 detected_plate_webcam = get_plates_from_webcam()
