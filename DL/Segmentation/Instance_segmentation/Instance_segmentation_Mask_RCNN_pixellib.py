@@ -27,7 +27,7 @@ segmentation_model.load_model('mask_rcnn_coco.h5')
 
 
 # Video
-segmentation_model.process_video("input/video.mp4", frames_per_second= 15, output_video_name="output/seg_video.mp4")
+segmentation_model.process_video("input/test_vid2.mp4", frames_per_second= 15, output_video_name="output/seg_video.mp4")
 
 
 
